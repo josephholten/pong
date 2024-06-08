@@ -193,7 +193,6 @@ int main(int, char**){
                 ballDirection.x *= -1.0f;
                 ballDirection.y += direction*delta*2;
                 ballDirection = Vector2Normalize(ballDirection);
-                TraceLog(LOG_DEBUG, "new ball direction (%+f %+f)", ballDirection.x, ballDirection.y);
 
                 hasHit = true;
                 lastCollision = time(NULL);
@@ -202,7 +201,14 @@ int main(int, char**){
         if (ballPosition.y + ballSize + margin + netThickness >= screenSize.y || ballPosition.y <= ballSize + margin + netThickness)
             ballDirection.y *= -1.0f;
 
-        if (ballPosition.x <= margin + netThickness + ballSize || ballPosition.x + margin + netThickness + ballSize >= screenSize.x) {
+        if (ballPosition.x <= margin + netThickness + ballSize) {
+            goals[1]++;
+            ballAlive = false;
+            hasHit = false;
+
+        }
+        if(ballPosition.x + margin + netThickness + ballSize >= screenSize.x) {
+            goals[0]++;
             ballAlive = false;
             hasHit = false;
         }
@@ -219,13 +225,24 @@ int main(int, char**){
                 DrawRectangleV(pos, playerSize, foregroundColor);
 
             // ball
-            if (ballAlive) {
-                DrawCircleV(ballPosition, ballSize, foregroundColor);
-            } else {
-                const char* ballDead = "Ball DEAD";
+            DrawCircleV(ballPosition, ballSize, foregroundColor);
+            if (!ballAlive) {
+                const char* ballDead = "Ball DEAD\nPress space to start";
                 Vector2 ballDeadSize = MeasureTextEx(font, ballDead, fontSize, fontSpacing);
                 DrawTextEx(font, ballDead, {screenSize.x/2.f-ballDeadSize.x/2,textMargin}, fontSize, fontSpacing, WHITE);
+                DrawCircleV(ballPosition, ballSize, foregroundColor);
             }
+
+            // score
+            char scoreBuf[2];
+            Vector2 scoreTextSize;
+
+            sprintf(scoreBuf, "%d", goals[0]);
+            DrawTextEx(font, scoreBuf, {margin,textMargin}, fontSize, fontSpacing, WHITE);
+
+            sprintf(scoreBuf, "%d", goals[1]);
+            scoreTextSize = MeasureTextEx(font, scoreBuf, fontSize, fontSpacing);
+            DrawTextEx(font, scoreBuf, {screenSize.x-margin-scoreTextSize.x,textMargin}, fontSize, fontSpacing, WHITE);
         }
 
         EndDrawing();
