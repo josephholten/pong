@@ -7,12 +7,6 @@ int GetRandomSign() {
     return GetRandomValue(0, 1) ? 1 : -1;
 }
 
-int FloatSign(float x) {
-    if (x > 0) return 1;
-    if (x < 0) return -1;
-    return 0;
-}
-
 // Custom logging function
 void CustomLog(int logLevel, const char *text, va_list args)
 {
