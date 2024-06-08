@@ -97,13 +97,18 @@ int main(int, char**){
     Color backgroundColor = BLACK;
     Color foregroundColor = WHITE;
 
-    Font font = GetFontDefault();
-    int fontSize = 20;
-    int fontSpacing = 2;
+    float fontSize = 20.f;
+    float fontSpacing = 3.f;
 
     SetTraceLogCallback(CustomLog);
     SetTraceLogLevel(LOG_DEBUG);
     InitWindow(screenSize.x, screenSize.y, "pong");
+
+    Font font = GetFontDefault();
+    if (!IsFontReady(font)) {
+        TraceLog(LOG_ERROR, "font is not ready!");
+        CloseWindow();
+    }
 
     SetRandomSeed((unsigned int)time(NULL));
 
@@ -205,17 +210,21 @@ int main(int, char**){
         BeginDrawing(); {
             ClearBackground(backgroundColor);
 
+            // lines
             DrawNet(screenSize, {margin, margin}, netThickness, foregroundColor);
+            DrawLineExDashed({screenSize.x/2.f, margin}, {screenSize.x/2.f, screenSize.y-margin}, netThickness/2.0f, foregroundColor, 2.0f*netThickness);
 
+            // player
             for (Vector2 pos : playerPos)
                 DrawRectangleV(pos, playerSize, foregroundColor);
 
+            // ball
             if (ballAlive) {
                 DrawCircleV(ballPosition, ballSize, foregroundColor);
             } else {
-                const char* text = "Ball DEAD";
-                int width = MeasureText(text, fontSize);
-                DrawTextEx(font, "Ball DEAD", {screenSize.x/2-width/2, textMargin}, fontSize, fontSpacing, foregroundColor);
+                const char* ballDead = "Ball DEAD";
+                Vector2 ballDeadSize = MeasureTextEx(font, ballDead, fontSize, fontSpacing);
+                DrawTextEx(font, ballDead, {screenSize.x/2.f-ballDeadSize.x/2,textMargin}, fontSize, fontSpacing, WHITE);
             }
         }
 
