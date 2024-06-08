@@ -94,6 +94,9 @@ int main(int, char**){
     float textMargin = 5;
     float margin = 50;
 
+    Color backgroundColor = BLACK;
+    Color foregroundColor = WHITE;
+
     Font font = GetFontDefault();
     int fontSize = 20;
     int fontSpacing = 2;
@@ -200,19 +203,19 @@ int main(int, char**){
         }
 
         BeginDrawing(); {
-            ClearBackground(BLACK);
+            ClearBackground(backgroundColor);
 
-            DrawNet(screenSize, {margin, margin}, netThickness, WHITE);
+            DrawNet(screenSize, {margin, margin}, netThickness, foregroundColor);
 
             for (Vector2 pos : playerPos)
-                DrawRectangleV(pos, playerSize, WHITE);
+                DrawRectangleV(pos, playerSize, foregroundColor);
 
             if (ballAlive) {
-                DrawCircleV(ballPosition, ballSize, WHITE);
+                DrawCircleV(ballPosition, ballSize, foregroundColor);
             } else {
                 const char* text = "Ball DEAD";
                 int width = MeasureText(text, fontSize);
-                DrawTextEx(font, "Ball DEAD", {screenSize.x/2-width/2, textMargin}, fontSize, fontSpacing, WHITE);
+                DrawTextEx(font, "Ball DEAD", {screenSize.x/2-width/2, textMargin}, fontSize, fontSpacing, foregroundColor);
             }
         }
 
