@@ -1,5 +1,7 @@
 # A classic pong (and breakout) game
 
+![a screenshot of my pong implementation](./pong.png)
+
 ## About
 
 I made this foremost to become familiar with raylib
