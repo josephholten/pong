@@ -3,7 +3,7 @@
 #include "raylib.h"
 #include "raymath.h"
 
-#include "util/util.h"
+#include "util.h"
 
 void DrawNet(Vector2 screenSize, Vector2 margin, float thick, Color color) {
     Vector2 nw {margin.x, margin.y};
