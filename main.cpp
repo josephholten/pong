@@ -36,9 +36,20 @@ void CustomLog(int logLevel, const char *text, va_list args)
     printf("\n");
 }
 
-void DrawLineExDashed(Vector2 startPos, Vector2 endPos, float thick, Color color, float dashLength, float spaceLength) {
+void DrawLineExDashed(Vector2 startPos, Vector2 endPos, float thick, Color color, float dashLength) {
     float totalLength = Vector2Length(Vector2Subtract(endPos, startPos));
-    float numDashes = (totalLength + spaceLength) / (dashLength + spaceLength);
+
+    // we want the space to be about half of the dash, but we adjust so dashes and spaces fit exactly into total length
+    float approxSpaceLength = dashLength/2;
+
+    // get max number of dashes that fit into totalLength, not accounting for last space
+    int numDashes = (totalLength + approxSpaceLength) / (dashLength + approxSpaceLength);
+
+    // now to determine the exact space length
+    // know: totalLength + spaceLength = numDashes * (dashLength + spaceLength)
+    // implies: totalLength - numDashes*dashLength = (numDashes-1)*spaceLength
+    // i.e.
+    float spaceLength = (totalLength - numDashes*dashLength) / (numDashes-1);
 
     Vector2 direction = Vector2Normalize(Vector2Subtract(endPos, startPos));
     Vector2 pos {startPos.x, startPos.y};
@@ -57,10 +68,35 @@ void DrawTextCentered(const char* text, Vector2 pos, int fontSize, Color color) 
     DrawText(text, pos.x-text_width/2., pos.y-fontSize/2., fontSize, color);
 }
 
+void DrawNet(Vector2 screenSize, Vector2 margin, float thick, Color color) {
+    Vector2 nw {margin.x, margin.y};
+    Vector2 ne {screenSize.x-margin.x, margin.y};
+    Vector2 sw {margin.x, screenSize.y-margin.y};
+    Vector2 se {screenSize.x-margin.x, screenSize.y-margin.x};
+
+    float dashLength = 3*thick;
+
+    Vector2 horizontalLineOffset = {0, thick/2};
+    Vector2 verticalLineOffset = {thick/2, 0};
+    // top
+    DrawLineEx(Vector2Add(nw, horizontalLineOffset), Vector2Add(ne, horizontalLineOffset), thick, color);
+    // right
+    DrawLineExDashed(Vector2Subtract(ne, verticalLineOffset), Vector2Subtract(se, verticalLineOffset), thick, color, dashLength);
+    // bottom
+    DrawLineEx(Vector2Subtract(se, horizontalLineOffset), Vector2Subtract(sw, horizontalLineOffset), thick, color);
+    // left
+    DrawLineExDashed(Vector2Add(sw, verticalLineOffset), Vector2Add(nw, verticalLineOffset), thick, color, dashLength);
+}
+
 int main(int, char**){
     Vector2 screenSize = {800, 450};
     const Vector2 center = Vector2Scale(screenSize, 0.5f);
-    float xMargin = 50;
+    float textMargin = 5;
+    float margin = 50;
+
+    Font font = GetFontDefault();
+    int fontSize = 20;
+    int fontSpacing = 2;
 
     SetTraceLogCallback(CustomLog);
     SetTraceLogLevel(LOG_DEBUG);
@@ -72,9 +108,11 @@ int main(int, char**){
 
     Vector2 playerSize = { .x = 20.0f, .y = 150.0f };
     Vector2 playerPos[2] = {
-        { xMargin, screenSize.y/2 - playerSize.y/2},
-        { screenSize.x - xMargin, screenSize.y/2 - playerSize.y/2 },
+        { margin, screenSize.y/2 - playerSize.y/2},
+        { screenSize.x - margin - playerSize.x, screenSize.y/2 - playerSize.y/2 },
     };
+
+    int goals[2] = {0};
 
     // pixels per second
     float playerSpeed = 200.0f;
@@ -88,6 +126,8 @@ int main(int, char**){
     bool hasHit = false;
 
     time_t lastCollision = 0;
+
+    float netThickness = 10.0f;
 
     // close with ESC
     while(!WindowShouldClose()) {
@@ -105,7 +145,7 @@ int main(int, char**){
         playerPos[1].y += playerDirection[1];
 
         for (Vector2& pos : playerPos)
-            pos = Vector2Clamp(pos, {0,0}, Vector2Subtract(screenSize, playerSize));
+            pos = Vector2Clamp(pos, {0,margin}, {screenSize.x, screenSize.y-playerSize.y-margin});
 
         if (IsKeyPressed(KEY_SPACE)) {
             if (!ballAlive) {
@@ -143,37 +183,36 @@ int main(int, char**){
             if (CheckCollisionCircleRec(ballPosition, ballSize, playerRec) && time(NULL) > lastCollision) {
                 // flip ball direction on collision
                 ballDirection.x *= -1.0f;
-                TraceLog(LOG_DEBUG, "new ball direction (%f %f)", ballDirection.x, ballDirection.y);
+                ballDirection.y += direction*delta*2;
+                ballDirection = Vector2Normalize(ballDirection);
+                TraceLog(LOG_DEBUG, "new ball direction (%+f %+f)", ballDirection.x, ballDirection.y);
 
                 hasHit = true;
                 lastCollision = time(NULL);
             }
         }
-        if (ballPosition.y + ballSize >= screenSize.y || ballPosition.y - ballSize <= 0)
+        if (ballPosition.y + ballSize + margin + netThickness >= screenSize.y || ballPosition.y <= ballSize + margin + netThickness)
             ballDirection.y *= -1.0f;
 
-        if (ballPosition.x <= xMargin || ballPosition.x >= screenSize.x - xMargin) {
+        if (ballPosition.x <= margin + netThickness + ballSize || ballPosition.x + margin + netThickness + ballSize >= screenSize.x) {
             ballAlive = false;
             hasHit = false;
         }
 
         BeginDrawing(); {
             ClearBackground(BLACK);
-            float net_thickness = 5.0f;
-            DrawLineExDashed({xMargin + playerSize.x/2, 0}, {xMargin + playerSize.x/2, screenSize.y}, net_thickness, WHITE, 20.0f, 10.0f);
-            DrawLineExDashed({screenSize.x - xMargin + playerSize.x/2, 0}, {screenSize.x - xMargin + playerSize.x/2, screenSize.y}, net_thickness, WHITE, 20.0f, 10.0f);
 
-            DrawLineExDashed({screenSize.x/2, 0}, {screenSize.x/2, screenSize.y}, net_thickness*1.5, WHITE, 20.0f*1.5, 10.0f*1.5);
+            DrawNet(screenSize, {margin, margin}, netThickness, WHITE);
+
             for (Vector2 pos : playerPos)
                 DrawRectangleV(pos, playerSize, WHITE);
+
             if (ballAlive) {
                 DrawCircleV(ballPosition, ballSize, WHITE);
             } else {
-                int fontSize = 20;
-                int margin = 10;
                 const char* text = "Ball DEAD";
                 int width = MeasureText(text, fontSize);
-                DrawText("Ball DEAD", screenSize.x/2-width-net_thickness-margin, screenSize.y/2-fontSize/2, fontSize, WHITE);
+                DrawTextEx(font, "Ball DEAD", {screenSize.x/2-width/2, textMargin}, fontSize, fontSpacing, WHITE);
             }
         }
 
