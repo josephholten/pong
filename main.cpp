@@ -13,6 +13,29 @@ int FloatSign(float x) {
     return 0;
 }
 
+// Custom logging function
+void CustomLog(int logLevel, const char *text, va_list args)
+{
+    char timeStr[64] = { 0 };
+    time_t now = time(NULL);
+    struct tm *tm_info = localtime(&now);
+
+    strftime(timeStr, sizeof(timeStr), "%Y-%m-%d %H:%M:%S", tm_info);
+    printf("[%s] ", timeStr);
+
+    switch (logLevel)
+    {
+        case LOG_INFO: printf("[INFO] : "); break;
+        case LOG_ERROR: printf("[ERROR]: "); break;
+        case LOG_WARNING: printf("[WARN] : "); break;
+        case LOG_DEBUG: printf("[DEBUG]: "); break;
+        default: break;
+    }
+
+    vprintf(text, args);
+    printf("\n");
+}
+
 void DrawLineExDashed(Vector2 startPos, Vector2 endPos, float thick, Color color, float dashLength, float spaceLength) {
     float totalLength = Vector2Length(Vector2Subtract(endPos, startPos));
     float numDashes = (totalLength + spaceLength) / (dashLength + spaceLength);
@@ -39,6 +62,8 @@ int main(int, char**){
     const Vector2 center = Vector2Scale(screenSize, 0.5f);
     float xMargin = 50;
 
+    SetTraceLogCallback(CustomLog);
+    SetTraceLogLevel(LOG_DEBUG);
     InitWindow(screenSize.x, screenSize.y, "pong");
 
     SetRandomSeed((unsigned int)time(NULL));
@@ -61,6 +86,8 @@ int main(int, char**){
     float ballSpeed = 400.0f;
     float ballSize = 10.0f;
     bool hasHit = false;
+
+    time_t lastCollision = 0;
 
     // close with ESC
     while(!WindowShouldClose()) {
@@ -113,13 +140,13 @@ int main(int, char**){
             Vector2 pos = playerPos[i];
             float direction = playerDirection[i];
             Rectangle playerRec = {pos.x, pos.y, playerSize.x, playerSize.y};
-            if (CheckCollisionCircleRec(ballPosition, ballSize, playerRec)) {
+            if (CheckCollisionCircleRec(ballPosition, ballSize, playerRec) && time(NULL) > lastCollision) {
                 // flip ball direction on collision
                 ballDirection.x *= -1.0f;
-                ballDirection.y += direction;
-                // ballDirection.y += GetRandomValue(-ballDirection.y, ballDirection.y);
-                ballDirection = Vector2Normalize(ballDirection);
+                TraceLog(LOG_DEBUG, "new ball direction (%f %f)", ballDirection.x, ballDirection.y);
+
                 hasHit = true;
+                lastCollision = time(NULL);
             }
         }
         if (ballPosition.y + ballSize >= screenSize.y || ballPosition.y - ballSize <= 0)
@@ -142,7 +169,11 @@ int main(int, char**){
             if (ballAlive) {
                 DrawCircleV(ballPosition, ballSize, WHITE);
             } else {
-                DrawTextCentered("Ball DEAD", center, 20, WHITE);
+                int fontSize = 20;
+                int margin = 10;
+                const char* text = "Ball DEAD";
+                int width = MeasureText(text, fontSize);
+                DrawText("Ball DEAD", screenSize.x/2-width-net_thickness-margin, screenSize.y/2-fontSize/2, fontSize, WHITE);
             }
         }
 
