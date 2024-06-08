@@ -114,12 +114,6 @@ int main(int, char**){
 
     SetTargetFPS(60);
 
-    Vector2 playerSize = { .x = 20.0f, .y = 150.0f };
-    Vector2 playerPos[2] = {
-        { margin, screenSize.y/2 - playerSize.y/2},
-        { screenSize.x - margin - playerSize.x, screenSize.y/2 - playerSize.y/2 },
-    };
-
     int goals[2] = {0};
 
     // pixels per second
@@ -137,6 +131,12 @@ int main(int, char**){
 
     float netThickness = 10.0f;
 
+    Vector2 playerSize = { .x = 20.0f, .y = 150.0f };
+    Vector2 playerPos[2] = {
+        { margin + netThickness + textMargin, screenSize.y/2 - playerSize.y/2},
+        { screenSize.x - margin - playerSize.x - netThickness - textMargin, screenSize.y/2 - playerSize.y/2 },
+    };
+
     // close with ESC
     while(!WindowShouldClose()) {
         float delta = GetFrameTime();
@@ -153,7 +153,7 @@ int main(int, char**){
         playerPos[1].y += playerDirection[1];
 
         for (Vector2& pos : playerPos)
-            pos = Vector2Clamp(pos, {0,margin}, {screenSize.x, screenSize.y-playerSize.y-margin});
+            pos = Vector2Clamp(pos, {0,margin+netThickness}, {screenSize.x, screenSize.y-playerSize.y-margin-netThickness});
 
         if (IsKeyPressed(KEY_SPACE)) {
             if (!ballAlive) {
@@ -227,7 +227,7 @@ int main(int, char**){
             // ball
             DrawCircleV(ballPosition, ballSize, foregroundColor);
             if (!ballAlive) {
-                const char* ballDead = "Ball DEAD\nPress space to start";
+                const char* ballDead = "ball DEAD: press space to start";
                 Vector2 ballDeadSize = MeasureTextEx(font, ballDead, fontSize, fontSpacing);
                 DrawTextEx(font, ballDead, {screenSize.x/2.f-ballDeadSize.x/2,textMargin}, fontSize, fontSpacing, WHITE);
                 DrawCircleV(ballPosition, ballSize, foregroundColor);
